@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos Pilar 1: Pessoal
+  accounts BankAccount[]
+  journals JournalEntry[]
+  goals    GoalBoard[]
+
+  // Relacionamentos Pilar 2: Mente
+  notebooks StudyNotebook[]
+  books     Book[]
+
+  // Relacionamentos Pilar 3: Corpo
+  assessments PhysicalAssessment[]
+  diets       DietMeal[]
+  workouts    WorkoutRoutine[]
+
+  // Relacionamentos Pilar 4: Alma
+  hobbies    Hobby[]
+  brainstorm BrainstormNote[]
+}
+
+// ==========================================
+// PILAR 1: PESSOAL
+// ==========================================
+
+model BankAccount {
+  id           String        @id @default(uuid())
+  userId       String
+  name         String // Ex: Banco 1, Banco 2
+  balance      Float         @default(0.0)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  creditCards  CreditCard[]
+}
+
+model Transaction {
+  id          String      @id @default(uuid())
+  accountId   String
+  amount      Float
+  type        String // INCOME, EXPENSE
+  category    String // Moradia, Assinatura, Comida, etc...
+  description String?
+  date        DateTime    @default(now())
+  account     BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model CreditCard {
+  id          String      @id @default(uuid())
+  accountId   String
+  name        String
+  limit       Float
+  currentUsed Float       @default(0.0)
+  invoiceDate Int // Dia do vencimento
+  account     BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model JournalEntry {
+  id      String   @id @default(uuid())
+  userId  String
+  content String   @db.Text
+  date    DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+}
+
+model Task {
+  id          String        @id @default(uuid())
+  journalId   String?
+  title       String
+  category    String // Saúde, Estudos, Pessoal, etc.
+  rating      Int           @default(0) // 0 a 5 estrelas
+  isCompleted Boolean       @default(false)
+  date        DateTime      @default(now())
+  journal     JournalEntry? @relation(fields: [journalId], references: [id], onDelete: SetNull)
+}
+
+model GoalBoard {
+  id     String @id @default(uuid())
+  userId String
+  title  String
+  status String // TODO, DOING, DONE
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// PILAR 2: MENTE
+// ==========================================
+
+model StudyNotebook {
+  id      String        @id @default(uuid())
+  userId  String
+  title   String
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons StudyLesson[]
+  flashcards Flashcard[]
+}
+
+
+model StudyLesson {
+  id         String        @id @default(uuid())
+  notebookId String
+  name       String
+  status     String // NOT_STARTED, DOING, COMPLETED, IN_REVIEW
+  nextReview DateTime?
+  notebook   StudyNotebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+}
+
+model Flashcard {
+  id          String        @id @default(uuid())
+  notebookId  String
+  front       String        @db.Text
+  back        String        @db.Text
+  interval    Int           @default(0) // dias
+  ease        Float         @default(2.5)
+  nextReview  DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  notebook    StudyNotebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+}
+
+
+model Book {
+  id     String  @id @default(uuid())
+  userId String
+  title  String
+  author String?
+  status String // READING, WISHLIST, NEXT, FINISHED
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// PILAR 3: CORPO
+// ==========================================
+
+model PhysicalAssessment {
+  id         String   @id @default(uuid())
+  userId     String
+  weight     Float
+  bodyFat    Float?
+  muscleMass Float?
+  goal       String // Bulking, Cutting, Recomposition
+  photos     String[] // URLs das mídias enviadas
+  date       DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DietMeal {
+  id     String     @id @default(uuid())
+  userId String
+  name   String // Café da manhã, Almoço, etc.
+  time   String? // Ex: "08:00"
+  date   DateTime   @default(now())
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  MealItem[]
+}
+
+model MealItem {
+  id            String   @id @default(uuid())
+  mealId        String
+  foodId        String
+  amountInGrams Float
+  meal          DietMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food          FoodItem @relation(fields: [foodId], references: [id], onDelete: Restrict)
+}
+
+model FoodItem {
+  id        String     @id @default(uuid())
+  name      String
+  calories  Float
+  protein   Float
+  carbs     Float
+  fats      Float
+  mealItems MealItem[]
+}
+
+model Recipe {
+  id           String   @id @default(uuid())
+  name         String
+  instructions String   @db.Text
+  ingredients  String[]
+}
+
+model WorkoutRoutine {
+  id        String     @id @default(uuid())
+  userId    String
+  name      String
+  weekday   String? // Segunda, Terça, etc.
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+}
+
+model Exercise {
+  id        String         @id @default(uuid())
+  routineId String
+  name      String
+  sets      Int
+  reps      Int
+  weight    Float
+  routine   WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// PILAR 4: ALMA
+// ==========================================
+
+model Hobby {
+  id       String  @id @default(uuid())
+  userId   String
+  name     String
+  schedule String? // Quando fazer
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BrainstormNote {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
