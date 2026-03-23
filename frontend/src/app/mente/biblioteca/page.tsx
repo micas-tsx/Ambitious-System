@@ -119,17 +119,18 @@ export default function BibliotecaDashboard() {
              <CardTitle className="text-white text-lg">Meu Acervo ({filteredBooks.length} Livros)</CardTitle>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
-             <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input 
-                   placeholder="Buscar título ou autor..." 
-                   className="pl-9 bg-zinc-950 border-zinc-800 text-zinc-300"
-                   value={searchTerm}
-                   onChange={(e) => setSearchTerm(e.target.value)}
-                />
-             </div>
-          </div>
+                {/* TODO: Adicionar filtros por status (Lendo, Wishlist, Finalizados, Próximas Leituras) */}
+                <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                 <Input 
+                    placeholder="Buscar título ou autor..." 
+                    className="pl-9 bg-zinc-950 border-zinc-800 text-zinc-300"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                 />
+              </div>
+           </div>
         </CardHeader>
         
         <CardContent className="p-6">
@@ -148,6 +149,7 @@ export default function BibliotecaDashboard() {
                         </button>
                     </div>
 
+                    {/* TODO: Permitir upload de capa do livro */}
                     {/* Placeholder de Capa */}
                     <div className="h-48 w-full relative overflow-hidden bg-zinc-900 flex items-center justify-center">
                        <Book className="w-12 h-12 text-zinc-800" />
@@ -165,15 +167,16 @@ export default function BibliotecaDashboard() {
                        <h3 className="text-white font-semibold line-clamp-1" title={book.title}>{book.title}</h3>
                        <p className="text-zinc-500 text-sm mb-4 line-clamp-1">{book.author || "Autor desconhecido"}</p>
                        
+                       {/* TODO: Permitir rating do livro */}
                        <div className="mt-auto">
-                            {book.status === "FINISHED" && (
-                               <div className="flex gap-1">
-                                  {Array.from({ length: 5 }).map((_, idx) => (
-                                     <Star key={idx} className={`w-3.5 h-3.5 fill-amber-500 text-amber-500`} />
-                                  ))}
-                               </div>
-                            )}
-                       </div>
+                             {book.status === "FINISHED" && (
+                                <div className="flex gap-1">
+                                   {Array.from({ length: 5 }).map((_, idx) => (
+                                      <Star key={idx} className={`w-3.5 h-3.5 fill-amber-500 text-amber-500`} />
+                                   ))}
+                                </div>
+                             )}
+                        </div>
                     </div>
                  </div>
               ))}

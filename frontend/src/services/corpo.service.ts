@@ -44,4 +44,9 @@ export const corpoService = {
   getAlimentos: () => apiFetch("/corpo/alimentos"),
   createAlimento: (data: any) => 
     apiFetch("/corpo/alimentos", { method: "POST", body: JSON.stringify(data) }),
+
+  // Hidratação
+  getHidratação: () => apiFetch("/corpo/hidratacao"),
+  addHidratação: (amount: number) => 
+    apiFetch("/corpo/hidratacao", { method: "POST", body: JSON.stringify({ amount }) }),
 };

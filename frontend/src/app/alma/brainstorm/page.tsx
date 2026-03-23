@@ -178,19 +178,20 @@ export default function BrainstormDashboard() {
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                        <p className="text-xs text-zinc-500 line-clamp-3 mt-2">{ideia.content}</p>
-                       <div className="flex justify-between mt-4">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => handleDeleteNote(ideia.id)}
-                            className="h-6 text-xs text-zinc-500 hover:text-red-500 p-0 hover:bg-transparent"
-                          >
-                             <Trash2 className="w-3 h-3 mr-1" /> Excluir
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-500 group-hover:text-white transition-colors p-0 hover:bg-transparent">
-                             Expandir Ideia <ArrowRight className="w-3 h-3 ml-1" />
-                          </Button>
-                       </div>
+                        {/* TODO: Implementar modal de edição da nota */}
+                        <div className="flex justify-between mt-4">
+                           <Button 
+                             size="sm" 
+                             variant="ghost" 
+                             onClick={() => handleDeleteNote(ideia.id)}
+                             className="h-6 text-xs text-zinc-500 hover:text-red-500 p-0 hover:bg-transparent"
+                           >
+                              <Trash2 className="w-3 h-3 mr-1" /> Excluir
+                           </Button>
+                           <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-500 group-hover:text-white transition-colors p-0 hover:bg-transparent">
+                              Expandir Ideia <ArrowRight className="w-3 h-3 ml-1" />
+                           </Button>
+                        </div>
                     </CardContent>
                  </Card>
               )) : (

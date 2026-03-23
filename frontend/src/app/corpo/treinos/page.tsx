@@ -146,9 +146,10 @@ export default function TreinosDashboard() {
                    >
                       Excluir
                    </Button>
-                   <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                      Iniciar
-                   </Button>
+                    {/* TODO: Implementar modo de treino ativo com timer e controle de séries */}
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                       Iniciar
+                    </Button>
                  </div>
                </CardHeader>
                <CardContent className="pt-6 p-0 md:p-6">
@@ -265,7 +266,8 @@ export default function TreinosDashboard() {
                    })}
                 </div>
 
-                <div className="mt-6 flex flex-col gap-3">
+                        {/* TODO: Calcular volume total da semana baseado nos exercícios realizados */}
+                        <div className="mt-6 flex flex-col gap-3">
                    <div className="flex justify-between items-center p-3 rounded-md bg-zinc-950 border border-zinc-800">
                       <div className="flex items-center gap-2">
                          <Flame className="w-4 h-4 text-orange-500" />

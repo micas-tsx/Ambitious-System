@@ -5,31 +5,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Wallet2, CreditCard, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { pessoalService } from "@/services/pessoal.service";
+import { TransacaoModal } from "@/components/ui/transacao-modal";
+import { CartaoModal } from "@/components/ui/cartao-modal";
 
 export default function FinancasDashboard() {
   const [contas, setContas] = useState<any[]>([]);
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalType, setModalType] = useState<"INCOME" | "EXPENSE" | null>(null);
+  const [showCartaoModal, setShowCartaoModal] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [contasData, transacoesData, cartoesData] = await Promise.all([
+        pessoalService.getContas(),
+        pessoalService.getTransacoes(),
+        pessoalService.getCartoes()
+      ]);
+      setContas(Array.isArray(contasData) ? contasData : []);
+      setTransacoes(Array.isArray(transacoesData) ? transacoesData : []);
+      setCartoes(Array.isArray(cartoesData) ? cartoesData : []);
+    } catch (error) {
+      console.error("Erro ao carregar dados financeiros:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [contasData, transacoesData, cartoesData] = await Promise.all([
-          pessoalService.getContas(),
-          pessoalService.getTransacoes(),
-          pessoalService.getCartoes()
-        ]);
-        setContas(Array.isArray(contasData) ? contasData : []);
-        setTransacoes(Array.isArray(transacoesData) ? transacoesData : []);
-        setCartoes(Array.isArray(cartoesData) ? cartoesData : []);
-      } catch (error) {
-        console.error("Erro ao carregar dados financeiros:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
 
@@ -54,10 +58,10 @@ export default function FinancasDashboard() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg" onClick={() => alert("Funcionalidade em breve!")}>
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg" onClick={() => setModalType("INCOME")}>
             <PlusCircle className="mr-2 h-4 w-4" /> Nova Receita
           </Button>
-          <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg" onClick={() => alert("Funcionalidade em breve!")}>
+          <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg" onClick={() => setModalType("EXPENSE")}>
             <PlusCircle className="mr-2 h-4 w-4" /> Nova Despesa
           </Button>
         </div>
@@ -109,15 +113,22 @@ export default function FinancasDashboard() {
               </div>
               <div className="flex justify-between mt-2 text-xs text-zinc-400">
                 <span>Disponível: {(cartao.limit - cartao.currentUsed).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                <span>Limite: {cartao.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                <span>Limite: {cartao.limit.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })}</span>
               </div>
             </CardContent>
           </Card>
         )) : (
-          <Card className="bg-zinc-900 border-zinc-800 border-dashed">
-            <CardHeader>
-              <CardTitle className="text-zinc-500 text-sm">Nenhum cartão cadastrado</CardTitle>
-            </CardHeader>
+          <Card className="bg-zinc-900 border-zinc-800 border-dashed flex flex-col items-center justify-center p-6">
+            <CreditCard className="h-8 w-8 text-zinc-700 mb-2" />
+            <CardTitle className="text-zinc-500 text-sm mb-3">Nenhum cartão cadastrado</CardTitle>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10"
+              onClick={() => setShowCartaoModal(true)}
+            >
+              <PlusCircle className="w-4 h-4 mr-2" /> Cadastrar Cartão
+            </Button>
           </Card>
         )}
       </div>
@@ -170,22 +181,29 @@ export default function FinancasDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-5">
-              {["Moradia", "Comida", "Fitness", "Assinatura"].map((cat) => {
-                const catTxs = transacoes.filter(t => t.category === cat && t.type === "EXPENSE");
-                const total = catTxs.reduce((acc, t) => acc + t.amount, 0);
-                if (total === 0) return null;
-                return (
-                  <div key={cat}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-sm font-medium text-zinc-300">{cat}</span>
-                      <span className="text-sm font-semibold text-white">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              {(() => {
+                const totalDespesas = transacoes
+                  .filter(t => t.type === "EXPENSE")
+                  .reduce((acc, t) => acc + t.amount, 0);
+                
+                return ["Moradia", "Comida", "Fitness", "Assinatura"].map((cat) => {
+                  const catTxs = transacoes.filter(t => t.category === cat && t.type === "EXPENSE");
+                  const total = catTxs.reduce((acc, t) => acc + t.amount, 0);
+                  if (total === 0) return null;
+                  const percentage = totalDespesas > 0 ? (total / totalDespesas) * 100 : 0;
+                  return (
+                    <div key={cat}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-medium text-zinc-300">{cat}</span>
+                        <span className="text-sm font-semibold text-white">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${percentage}%` }}></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: "25%" }}></div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
               {transacoes.filter(t => t.type === "EXPENSE").length === 0 && (
                 <p className="text-zinc-500 text-sm text-center py-8">Sem despesas registradas.</p>
               )}
@@ -193,6 +211,23 @@ export default function FinancasDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Transação */}
+      <TransacaoModal
+        isOpen={modalType !== null}
+        onClose={() => setModalType(null)}
+        onSuccess={fetchData}
+        type={modalType || "EXPENSE"}
+        contas={contas}
+      />
+
+      {/* Modal de Cartão de Crédito */}
+      <CartaoModal
+        isOpen={showCartaoModal}
+        onClose={() => setShowCartaoModal(false)}
+        onSuccess={fetchData}
+        contas={contas}
+      />
 
     </div>
   );

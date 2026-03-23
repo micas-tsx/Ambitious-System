@@ -166,20 +166,21 @@ export default function HobbiesDashboard() {
                             <Icon className={`w-6 h-6 ${color}`} />
                         </div>
                         <div className="flex-1 space-y-3">
-                            <div className="flex justify-between items-start">
-                               <div>
-                                  <h3 className="text-white font-medium">{hobby.name}</h3>
-                                  <p className="text-xs text-zinc-500">{hobby.category}</p>
-                               </div>
-                               <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  onClick={() => handleDeleteHobby(hobby.id)}
-                                  className="h-8 w-8 text-zinc-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                               >
-                                  <Trash2 className="w-4 h-4" />
-                               </Button>
-                            </div>
+                             {/* TODO: Adicionar opção de editar hobby */}
+                             <div className="flex justify-between items-start">
+                                <div>
+                                   <h3 className="text-white font-medium">{hobby.name}</h3>
+                                   <p className="text-xs text-zinc-500">{hobby.category}</p>
+                                </div>
+                                <Button 
+                                   size="icon" 
+                                   variant="ghost" 
+                                   onClick={() => handleDeleteHobby(hobby.id)}
+                                   className="h-8 w-8 text-zinc-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                   <Trash2 className="w-4 h-4" />
+                                </Button>
+                             </div>
                         </div>
                     </div>
                   );

@@ -14,15 +14,18 @@ export default function DietaDashboard() {
   const [newMealTime, setNewMealTime] = useState("");
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({ foodId: "", quantity: 100 });
+  const [waterConsumed, setWaterConsumed] = useState(0);
 
   const fetchData = async () => {
     try {
-      const [mealsData, foodsData] = await Promise.all([
+      const [mealsData, foodsData, waterData] = await Promise.all([
         corpoService.getRefeicoes(),
-        corpoService.getAlimentos()
+        corpoService.getAlimentos(),
+        corpoService.getHidratação()
       ]);
       setRefeicoes(Array.isArray(mealsData) ? mealsData : []);
       setAlimentos(Array.isArray(foodsData) ? foodsData : []);
+      setWaterConsumed(waterData?.consumed || 0);
     } catch (error) {
       console.error("Erro ao carregar dados da dieta:", error);
     } finally {
@@ -83,9 +86,27 @@ export default function DietaDashboard() {
     }
   };
 
+  const handleAddWater = async () => {
+    try {
+      await corpoService.addHidratação(250);
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao adicionar água:", error);
+    }
+  };
+
+  const handleAddWaterAmount = async (amount: number) => {
+    try {
+      await corpoService.addHidratação(amount);
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao adicionar água:", error);
+    }
+  };
+
   // Cálculo simplificado de macros
   const calculateTotals = () => {
-    let totals = { kcal: 0, p: 0, c: 0, g: 0 };
+    const totals = { kcal: 0, p: 0, c: 0, g: 0 };
 
     refeicoes.forEach(meal => {
       meal.items?.forEach((item: any) => {
@@ -138,27 +159,28 @@ export default function DietaDashboard() {
             Acompanhe suas calorias, macros e cadastre refeições do dia.
           </p>
         </div>
-        <div className="flex gap-2">
-          <input 
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-sm text-white w-32 focus:ring-1 focus:ring-emerald-500 outline-none"
-            placeholder="Refeição..."
-            value={newMealName}
-            onChange={(e) => setNewMealName(e.target.value)}
-          />
-          <input 
-            type="time"
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-sm text-white focus:ring-1 focus:ring-emerald-500 outline-none"
-            value={newMealTime}
-            onChange={(e) => setNewMealTime(e.target.value)}
-          />
-          <Button 
-             onClick={handleCreateMeal}
-             className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg"
-             size="sm"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> Registrar
-          </Button>
-        </div>
+      {/* TODO: Permitir selecionar data para a refeição (não apenas hoje) */}
+      <div className="flex gap-2">
+           <input 
+             className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-sm text-white w-32 focus:ring-1 focus:ring-emerald-500 outline-none"
+             placeholder="Refeição..."
+             value={newMealName}
+             onChange={(e) => setNewMealName(e.target.value)}
+           />
+           <input 
+             type="time"
+             className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-sm text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+             value={newMealTime}
+             onChange={(e) => setNewMealTime(e.target.value)}
+           />
+           <Button 
+              onClick={handleCreateMeal}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg"
+              size="sm"
+           >
+             <PlusCircle className="mr-2 h-4 w-4" /> Registrar
+           </Button>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -308,12 +330,43 @@ export default function DietaDashboard() {
               </CardHeader>
               <CardContent>
                  <div className="flex items-center justify-between my-4">
-                    <span className="text-3xl font-bold text-white">1.8 <span className="text-lg text-zinc-500 font-normal">L</span></span>
-                    <Button size="icon" variant="outline" className="rounded-full bg-blue-500/10 border-blue-500/50 hover:bg-blue-500 hover:text-white text-blue-400">
+                    <span className="text-3xl font-bold text-white">{(waterConsumed / 1000).toFixed(1)} <span className="text-lg text-zinc-500 font-normal">L</span></span>
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      className="rounded-full bg-blue-500/10 border-blue-500/50 hover:bg-blue-500 hover:text-white text-blue-400"
+                      onClick={handleAddWater}
+                    >
                        <PlusCircle className="w-5 h-5" />
                     </Button>
                  </div>
-                 <p className="text-xs text-center text-zinc-500 mt-2">Funcionalidade em desenvolvimento</p>
+                 <div className="w-full bg-blue-500/20 rounded-full h-2 mb-2">
+                   <div 
+                     className="bg-blue-500 h-2 rounded-full transition-all" 
+                     style={{ width: `${Math.min(100, (waterConsumed / 3500) * 100)}%` }}
+                   />
+                 </div>
+                 <p className="text-xs text-center text-zinc-500 mt-2">
+                   {((3500 - waterConsumed) / 1000).toFixed(1)}L restantes
+                 </p>
+                 <div className="flex gap-2 mt-3">
+                   <Button 
+                     size="sm" 
+                     variant="outline"
+                     className="flex-1 text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+                     onClick={() => handleAddWaterAmount(250)}
+                   >
+                     +250ml
+                   </Button>
+                   <Button 
+                     size="sm" 
+                     variant="outline"
+                     className="flex-1 text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+                     onClick={() => handleAddWaterAmount(500)}
+                   >
+                     +500ml
+                   </Button>
+                 </div>
               </CardContent>
            </Card>
         </div>

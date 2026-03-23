@@ -56,7 +56,7 @@ export default function Home() {
     }
   }, [user]);
 
-  console.log("tenis")
+  console.log(" tenis")
 
   const pillars = [
     {

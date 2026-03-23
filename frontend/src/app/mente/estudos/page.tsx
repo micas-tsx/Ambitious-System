@@ -6,12 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, BookOpen, Clock, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { menteService } from "@/services/mente.service";
+import { AulaModal } from "@/components/ui/aula-modal";
+import { FlashcardReview } from "@/components/ui/flashcard-review";
 
 export default function EstudosDashboard() {
   const [cadernos, setCadernos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNotebookTitle, setNewNotebookTitle] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [aulaModal, setAulaModal] = useState<{ isOpen: boolean; notebookId: string; notebookName: string }>({
+    isOpen: false,
+    notebookId: "",
+    notebookName: "",
+  });
+  const [showFlashcardReview, setShowFlashcardReview] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -39,11 +47,38 @@ export default function EstudosDashboard() {
     }
   };
 
+  const handleToggleLesson = async (lessonId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "COMPLETED" ? "NOT_STARTED" : "COMPLETED";
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/mente/aulas/${lessonId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao atualizar aula:", error);
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (!confirm("Excluir esta aula?")) return;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/mente/aulas/${lessonId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao excluir aula:", error);
+    }
+  };
+
   const filteredCadernos = cadernos.filter(c => 
     c.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calcula lições para revisar (hoje ou atrasado)
   const allLessons = cadernos.flatMap(c => c.lessons.map((l: any) => ({ ...l, notebookTitle: c.title })));
   const reviewQueue = allLessons.filter(l => l.nextReview && new Date(l.nextReview) <= new Date());
 
@@ -67,7 +102,8 @@ export default function EstudosDashboard() {
             Gerencie seus cadernos, aulas e fluxo de repetição espaçada.
           </p>
         </div>
-        <div className="flex gap-3">
+          {/* TODO: Adicionar botão de criar aula dentro do caderno */}
+          <div className="flex gap-3">
           <div className="flex gap-2">
             <input 
               className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -107,7 +143,7 @@ export default function EstudosDashboard() {
               const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
               return (
-                <Card key={caderno.id} className="bg-zinc-900 border-zinc-800 hover:border-purple-500/50 transition-colors cursor-pointer group">
+                <Card key={caderno.id} className="bg-zinc-900 border-zinc-800 hover:border-purple-500/50 transition-colors group">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                        <CardTitle className="text-white text-lg group-hover:text-purple-400 transition-colors">{caderno.title}</CardTitle>
@@ -125,6 +161,14 @@ export default function EstudosDashboard() {
                           <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
                         </div>
                      </div>
+                     <Button 
+                       size="sm" 
+                       variant="ghost"
+                       className="w-full mt-3 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                       onClick={() => setAulaModal({ isOpen: true, notebookId: caderno.id, notebookName: caderno.title })}
+                     >
+                       <PlusCircle className="w-3 h-3 mr-1" /> Adicionar Aula
+                     </Button>
                   </CardContent>
                 </Card>
               );
@@ -138,15 +182,28 @@ export default function EstudosDashboard() {
           <Card className="bg-zinc-900 border-zinc-800">
              <CardContent className="p-0">
                 <div className="divide-y divide-zinc-800">
-                   {allLessons.slice(0, 5).map((item, i) => (
-                      <div key={i} className="p-4 flex items-center justify-between hover:bg-zinc-800/30 transition-colors">
+                   {allLessons.slice(0, 5).map((item) => (
+                      <div key={item.id} className="p-4 flex items-center justify-between hover:bg-zinc-800/30 transition-colors group">
                           <div className="flex items-center gap-4">
-                             <Circle className={`w-5 h-5 ${item.status === 'COMPLETED' ? 'text-emerald-500 fill-emerald-500/20' : 'text-zinc-600'} cursor-pointer transition-colors`} />
+                             <div 
+                               onClick={() => handleToggleLesson(item.id, item.status)}
+                               className="cursor-pointer"
+                             >
+                               <Circle className={`w-5 h-5 ${item.status === 'COMPLETED' ? 'text-emerald-500 fill-emerald-500/20' : 'text-zinc-600'} hover:text-purple-500 transition-colors`} />
+                             </div>
                              <div>
-                                <p className="text-white font-medium text-sm">{item.name}</p>
+                                <p className={`text-sm font-medium ${item.status === 'COMPLETED' ? 'text-zinc-500 line-through' : 'text-white'}`}>{item.name}</p>
                                 <p className="text-zinc-500 text-xs mt-0.5">{item.notebookTitle}</p>
                              </div>
                           </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8"
+                            onClick={() => handleDeleteLesson(item.id)}
+                          >
+                            Excluir
+                          </Button>
                       </div>
                    ))}
                    {allLessons.length === 0 && (
@@ -184,7 +241,12 @@ export default function EstudosDashboard() {
                     <p className="text-zinc-600 text-xs text-center py-6">Tudo em dia por aqui!</p>
                   )}
                </div>
-               <Button className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white" disabled={reviewQueue.length === 0}>
+               {/* TODO: Implementar sessão de revisão espaçada com flashcards */}
+               <Button 
+                 className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white" 
+                 disabled={reviewQueue.length === 0}
+                 onClick={() => setShowFlashcardReview(true)}
+               >
                  Iniciar Sessão de Revisão
                </Button>
             </CardContent>
@@ -192,6 +254,24 @@ export default function EstudosDashboard() {
         </div>
 
       </div>
+
+      <AulaModal
+        isOpen={aulaModal.isOpen}
+        onClose={() => setAulaModal({ ...aulaModal, isOpen: false })}
+        onSuccess={fetchData}
+        notebookId={aulaModal.notebookId}
+        notebookName={aulaModal.notebookName}
+      />
+
+      {showFlashcardReview && (
+        <FlashcardReview 
+          onClose={() => setShowFlashcardReview(false)}
+          onComplete={() => {
+            setShowFlashcardReview(false);
+            fetchData();
+          }}
+        />
+      )}
     </div>
   );
 }

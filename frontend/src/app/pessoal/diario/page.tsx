@@ -14,6 +14,7 @@ export default function DiarioDashboard() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskCategory, setNewTaskCategory] = useState("Pessoal");
   const [savingNote, setSavingNote] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   const categorias = ["Saúde", "Estudos", "Pessoal", "Família", "Hobbies", "Trabalho", "Tarefas", "Moradia"];
 
@@ -49,7 +50,6 @@ export default function DiarioDashboard() {
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) return;
     try {
-      // Cria uma task solta (sem journalId por enquanto, ou vinculada à última nota)
       const lastNoteId = notas.length > 0 ? notas[0].id : undefined;
       await pessoalService.createTask({
         title: newTaskTitle,
@@ -64,6 +64,34 @@ export default function DiarioDashboard() {
     }
   };
 
+  const handleToggleTask = async (taskId: string, currentStatus: boolean) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pessoal/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isCompleted: !currentStatus }),
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao atualizar task:", error);
+    }
+  };
+
+  const handleRatingChange = async (taskId: string, newRating: number) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pessoal/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ rating: newRating }),
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao atualizar rating:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
@@ -74,6 +102,9 @@ export default function DiarioDashboard() {
 
   // Pega todas as tasks das notas para exibir no painel lateral
   const allTasks = notas.flatMap(nota => nota.tasks || []);
+  const filteredTasks = filterCategory 
+    ? allTasks.filter((t: any) => t.category === filterCategory)
+    : allTasks;
 
   return (
     <div className="flex flex-col gap-8">
@@ -181,11 +212,17 @@ export default function DiarioDashboard() {
 
               {/* Filtros de Categorias */}
               <div className="flex flex-wrap gap-2 mb-6">
+                <span 
+                  onClick={() => setFilterCategory(null)}
+                  className={`text-[10px] uppercase font-semibold cursor-pointer px-2 py-1 rounded-sm transition-colors ${filterCategory === null ? "bg-blue-600 text-white" : "text-zinc-400 bg-zinc-800 hover:bg-zinc-700"}`}
+                >
+                  Todas
+                </span>
                 {categorias.slice(0, 4).map(cat => (
                   <span 
                     key={cat} 
-                    onClick={() => setNewTaskCategory(cat)}
-                    className={`text-[10px] uppercase font-semibold cursor-pointer px-2 py-1 rounded-sm transition-colors ${newTaskCategory === cat ? "bg-blue-600 text-white" : "text-zinc-400 bg-zinc-800 hover:bg-zinc-700"}`}
+                    onClick={() => setFilterCategory(cat)}
+                    className={`text-[10px] uppercase font-semibold cursor-pointer px-2 py-1 rounded-sm transition-colors ${filterCategory === cat ? "bg-blue-600 text-white" : "text-zinc-400 bg-zinc-800 hover:bg-zinc-700"}`}
                   >
                     {cat}
                   </span>
@@ -194,13 +231,14 @@ export default function DiarioDashboard() {
 
               {/* Lista de Tasks */}
               <div className="space-y-3">
-                {allTasks.length > 0 ? allTasks.map((task: any) => (
+                {filteredTasks.length > 0 ? filteredTasks.map((task: any) => (
                   <div key={task.id} className="group flex flex-col p-3 rounded-lg border border-zinc-800 bg-zinc-950 hover:border-zinc-700 transition-all">
                     <div className="flex items-start gap-3">
                       <input 
                         type="checkbox" 
-                        defaultChecked={task.isCompleted}
-                        className="mt-1 w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-zinc-950 flex-shrink-0" 
+                        checked={task.isCompleted}
+                        onChange={() => handleToggleTask(task.id, task.isCompleted)}
+                        className="mt-1 w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-zinc-950 flex-shrink-0 cursor-pointer" 
                       />
                       <div className="flex-1">
                         <p className={`text-sm font-medium ${task.isCompleted ? "text-zinc-600 line-through" : "text-zinc-200"}`}>
@@ -210,9 +248,13 @@ export default function DiarioDashboard() {
                           <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                             {task.category}
                           </span>
-                          <div className="flex gap-0.5">
+                          <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
                             {Array.from({ length: 5 }).map((_, idx) => (
-                              <Star key={idx} className={`w-3 h-3 ${idx < (task.rating || 0) ? "fill-amber-500 text-amber-500" : "fill-zinc-800 text-zinc-800"}`} />
+                              <Star 
+                                key={idx} 
+                                onClick={() => !task.isCompleted && handleRatingChange(task.id, idx + 1)}
+                                className={`w-3 h-3 cursor-pointer transition-colors ${idx < (task.rating || 0) ? "fill-amber-500 text-amber-500" : "fill-zinc-800 text-zinc-800"} ${!task.isCompleted ? "hover:text-amber-500" : ""}`} 
+                              />
                             ))}
                           </div>
                         </div>
