@@ -15,7 +15,7 @@ pool.on('error', (err) => {
   console.error('❌ PostgreSQL Pool Error:', err);
 });
 
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(pool as any);
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 

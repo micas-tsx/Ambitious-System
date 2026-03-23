@@ -27,6 +27,7 @@ model User {
   assessments PhysicalAssessment[]
   diets       DietMeal[]
   workouts    WorkoutRoutine[]
+  waterIntake WaterIntake[]
 
   // Relacionamentos Pilar 4: Alma
   hobbies    Hobby[]
@@ -144,6 +145,14 @@ model Book {
 // ==========================================
 // PILAR 3: CORPO
 // ==========================================
+
+model WaterIntake {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Int      // em ml
+  date      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
 model PhysicalAssessment {
   id         String   @id @default(uuid())

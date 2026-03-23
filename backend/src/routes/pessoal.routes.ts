@@ -10,47 +10,102 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
     return await prisma.bankAccount.findMany({
       where: { userId },
     });
-  })
-  .post(
-    "/contas",
-    async ({ userId, body }) => {
-      const { name, balance } = body;
-      return await prisma.bankAccount.create({
-        data: {
-          name,
-          balance,
-          userId,
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar contas bancárias",
+      description: "Retorna todas as contas bancárias do usuário.",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": {
+          description: "Lista de contas bancárias",
+          content: {
+            "application/json": {
+              schema: {
+                type: "array",
+                items: { $ref: "#/components/schemas/BankAccount" },
+              },
+            },
+          },
         },
-      });
+      },
     },
-    {
-      body: t.Object({
-        name: t.String(),
-        balance: t.Number(),
-      }),
-    }
-  )
-  .patch(
-    "/contas/:id",
-    async ({ params, body }) => {
-      const { id } = params;
-      return await prisma.bankAccount.update({
-        where: { id },
-        data: body,
-      });
+  })
+  .post("/contas", async ({ userId, body }) => {
+    const { name, balance } = body;
+    return await prisma.bankAccount.create({
+      data: { name, balance, userId },
+    });
+  }, {
+    body: t.Object({
+      name: t.String(),
+      balance: t.Number(),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar conta bancária",
+      description: "Cria uma nova conta bancária para o usuário.",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["name", "balance"],
+              properties: {
+                name: { type: "string" },
+                balance: { type: "number" },
+              },
+              example: { name: "Conta Corrente", balance: 5000 },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Conta criada", content: { "application/json": { schema: { $ref: "#/components/schemas/BankAccount" } } } },
+      },
     },
-    {
-      body: t.Object({
-        name: t.Optional(t.String()),
-        balance: t.Optional(t.Number()),
-      }),
-    }
-  )
+  })
+  .patch("/contas/:id", async ({ params, body }) => {
+    const { id } = params;
+    return await prisma.bankAccount.update({
+      where: { id },
+      data: body,
+    });
+  }, {
+    body: t.Object({
+      name: t.Optional(t.String()),
+      balance: t.Optional(t.Number()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Atualizar conta bancária",
+      description: "Atualiza uma conta bancária existente.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{
+        name: "id",
+        in: "path",
+        required: true,
+        schema: { type: "string", format: "uuid" },
+      }],
+      responses: {
+        "200": { description: "Conta atualizada", content: { "application/json": { schema: { $ref: "#/components/schemas/BankAccount" } } } },
+      },
+    },
+  })
   .delete("/contas/:id", async ({ params }) => {
     const { id } = params;
-    return await prisma.bankAccount.delete({
-      where: { id },
-    });
+    return await prisma.bankAccount.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar conta bancária",
+      description: "Remove uma conta bancária.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Conta deletada" } },
+    },
   })
 
   // === FINANÇAS: TRANSAÇÕES ===
@@ -59,36 +114,71 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
       where: { account: { userId } },
       orderBy: { date: "desc" },
     });
-  })
-  .post(
-    "/transacoes",
-    async ({ body }) => {
-      const { accountId, amount, type, category, description } = body;
-      return await prisma.transaction.create({
-        data: {
-          accountId,
-          amount,
-          type,
-          category,
-          description,
-        },
-      });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar transações",
+      description: "Retorna todas as transações ordenadas por data (mais recentes primeiro).",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": { description: "Lista de transações", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Transaction" } } } } },
+      },
     },
-    {
-      body: t.Object({
-        accountId: t.String(),
-        amount: t.Number(),
-        type: t.String(), // INCOME | EXPENSE
-        category: t.String(),
-        description: t.Optional(t.String()),
-      }),
-    }
-  )
+  })
+  .post("/transacoes", async ({ body }) => {
+    const { accountId, amount, type, category, description } = body;
+    return await prisma.transaction.create({
+      data: { accountId, amount, type, category, description },
+    });
+  }, {
+    body: t.Object({
+      accountId: t.String(),
+      amount: t.Number(),
+      type: t.String(),
+      category: t.String(),
+      description: t.Optional(t.String()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar transação",
+      description: "Cria uma nova transação (receita ou despesa).",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["accountId", "amount", "type", "category"],
+              properties: {
+                accountId: { type: "string", format: "uuid" },
+                amount: { type: "number" },
+                type: { type: "string", enum: ["INCOME", "EXPENSE"] },
+                category: { type: "string" },
+                description: { type: "string" },
+              },
+              example: { accountId: "uuid", amount: 150.50, type: "EXPENSE", category: "Alimentação", description: "Supermercado" },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Transação criada", content: { "application/json": { schema: { $ref: "#/components/schemas/Transaction" } } } },
+      },
+    },
+  })
   .delete("/transacoes/:id", async ({ params }) => {
     const { id } = params;
-    return await prisma.transaction.delete({
-      where: { id },
-    });
+    return await prisma.transaction.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar transação",
+      description: "Remove uma transação.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Transação deletada" } },
+    },
   })
 
   // === FINANÇAS: CARTÕES ===
@@ -96,6 +186,89 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
     return await prisma.creditCard.findMany({
       where: { account: { userId } },
     });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar cartões de crédito",
+      description: "Retorna todos os cartões de crédito do usuário.",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": { description: "Lista de cartões", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/CreditCard" } } } } },
+      },
+    },
+  })
+  .post("/cartoes", async ({ body }) => {
+    const { accountId, name, limit, invoiceDate } = body;
+    return await prisma.creditCard.create({
+      data: { accountId, name, limit, invoiceDate },
+    });
+  }, {
+    body: t.Object({
+      accountId: t.String(),
+      name: t.String(),
+      limit: t.Number(),
+      invoiceDate: t.Number(),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar cartão de crédito",
+      description: "Cria um novo cartão de crédito vinculado a uma conta.",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["accountId", "name", "limit", "invoiceDate"],
+              properties: {
+                accountId: { type: "string", format: "uuid" },
+                name: { type: "string" },
+                limit: { type: "number" },
+                invoiceDate: { type: "number", minimum: 1, maximum: 31 },
+              },
+              example: { accountId: "uuid", name: "Nubank", limit: 5000, invoiceDate: 15 },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Cartão criado", content: { "application/json": { schema: { $ref: "#/components/schemas/CreditCard" } } } },
+      },
+    },
+  })
+  .patch("/cartoes/:id", async ({ params, body }) => {
+    const { id } = params;
+    return await prisma.creditCard.update({ where: { id }, data: body });
+  }, {
+    body: t.Object({
+      name: t.Optional(t.String()),
+      limit: t.Optional(t.Number()),
+      invoiceDate: t.Optional(t.Number()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Atualizar cartão de crédito",
+      description: "Atualiza os dados de um cartão de crédito.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: {
+        "200": { description: "Cartão atualizado", content: { "application/json": { schema: { $ref: "#/components/schemas/CreditCard" } } } },
+      },
+    },
+  })
+  .delete("/cartoes/:id", async ({ params }) => {
+    const { id } = params;
+    return await prisma.creditCard.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar cartão de crédito",
+      description: "Remove um cartão de crédito.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Cartão deletado" } },
+    },
   })
 
   // === DIÁRIO: NOTAS & TASKS ===
@@ -105,124 +278,210 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
       include: { tasks: true },
       orderBy: { date: "desc" },
     });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar entradas do diário",
+      description: "Retorna todas as entradas do diário com suas tarefas.",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": { description: "Lista de entradas" },
+      },
+    },
   })
-  .post(
-    "/notas",
-    async ({ userId, body }) => {
-      const { content } = body;
-      return await prisma.journalEntry.create({
-        data: {
-          content,
-          userId,
-        },
-      });
-    },
-    {
-      body: t.Object({
-        content: t.String(),
-      }),
-    }
-  )
-  .post(
-    "/tasks",
-    async ({ body }) => {
-      const { journalId, title, category, rating, isCompleted } = body;
-      return await prisma.task.create({
-        data: {
-          journalId,
-          title,
-          category,
-          rating,
-          isCompleted,
-        },
-      });
-    },
-    {
-      body: t.Object({
-        journalId: t.Optional(t.String()),
-        title: t.String(),
-        category: t.String(),
-        rating: t.Number(),
-        isCompleted: t.Optional(t.Boolean()),
-      }),
-    }
-  )
-  .patch(
-    "/tasks/:id",
-    async ({ params, body }) => {
-      const { id } = params;
-      return await prisma.task.update({
-        where: { id },
-        data: body,
-      });
-    },
-    {
-      body: t.Object({
-        title: t.Optional(t.String()),
-        category: t.Optional(t.String()),
-        rating: t.Optional(t.Number()),
-        isCompleted: t.Optional(t.Boolean()),
-      }),
-    }
-  )
-  .delete("/tasks/:id", async ({ params }) => {
-    const { id } = params;
-    return await prisma.task.delete({
-      where: { id },
+  .post("/notas", async ({ userId, body }) => {
+    const { content } = body;
+    return await prisma.journalEntry.create({
+      data: { content, userId },
     });
+  }, {
+    body: t.Object({ content: t.String() }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar entrada no diário",
+      description: "Cria uma nova entrada no diário.",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["content"],
+              properties: { content: { type: "string" } },
+              example: { content: "Hoje foi um dia produtivo..." },
+            },
+          },
+        },
+      },
+      responses: { "200": { description: "Entrada criada" } },
+    },
   })
   .delete("/notas/:id", async ({ params }) => {
     const { id } = params;
-    return await prisma.journalEntry.delete({
-      where: { id },
+    return await prisma.journalEntry.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar entrada do diário",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Entrada deletada" } },
+    },
+  })
+  .post("/tasks", async ({ body }) => {
+    const { journalId, title, category, rating, isCompleted } = body;
+    return await prisma.task.create({
+      data: { journalId, title, category, rating, isCompleted },
     });
+  }, {
+    body: t.Object({
+      journalId: t.Optional(t.String()),
+      title: t.String(),
+      category: t.String(),
+      rating: t.Number(),
+      isCompleted: t.Optional(t.Boolean()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar tarefa",
+      description: "Cria uma nova tarefa no diário.",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["title", "category"],
+              properties: {
+                journalId: { type: "string", format: "uuid" },
+                title: { type: "string" },
+                category: { type: "string" },
+                rating: { type: "number" },
+                isCompleted: { type: "boolean" },
+              },
+              example: { title: "Estudar TypeScript", category: "Estudos", rating: 0, isCompleted: false },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": { description: "Tarefa criada", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
+      },
+    },
+  })
+  .patch("/tasks/:id", async ({ params, body }) => {
+    const { id } = params;
+    return await prisma.task.update({ where: { id }, data: body });
+  }, {
+    body: t.Object({
+      title: t.Optional(t.String()),
+      category: t.Optional(t.String()),
+      rating: t.Optional(t.Number()),
+      isCompleted: t.Optional(t.Boolean()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Atualizar tarefa",
+      description: "Atualiza uma tarefa existente. Use para marcar como concluída ou alterar propriedades.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: {
+        "200": { description: "Tarefa atualizada", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
+      },
+    },
+  })
+  .delete("/tasks/:id", async ({ params }) => {
+    const { id } = params;
+    return await prisma.task.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar tarefa",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Tarefa deletada" } },
+    },
   })
 
   // === METAS (GoalBoard) ===
   .get("/metas", async ({ userId }) => {
-    return await prisma.goalBoard.findMany({
-      where: { userId },
-    });
+    return await prisma.goalBoard.findMany({ where: { userId } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar metas",
+      description: "Retorna todas as metas do quadro Kanban (TODO, DOING, DONE).",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": { description: "Lista de metas", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/GoalBoard" } } } } },
+      },
+    },
   })
-  .post(
-    "/metas",
-    async ({ userId, body }) => {
-      const { title, status } = body;
-      return await prisma.goalBoard.create({
-        data: {
-          title,
-          status,
-          userId,
+  .post("/metas", async ({ userId, body }) => {
+    const { title, status } = body;
+    return await prisma.goalBoard.create({ data: { title, status, userId } });
+  }, {
+    body: t.Object({
+      title: t.String(),
+      status: t.String(),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Criar meta",
+      description: "Cria uma nova meta no quadro Kanban.",
+      security: [{ BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["title", "status"],
+              properties: {
+                title: { type: "string" },
+                status: { type: "string", enum: ["TODO", "DOING", "DONE"] },
+              },
+              example: { title: "Aprender React", status: "TODO" },
+            },
+          },
         },
-      });
+      },
+      responses: {
+        "200": { description: "Meta criada", content: { "application/json": { schema: { $ref: "#/components/schemas/GoalBoard" } } } },
+      },
     },
-    {
-      body: t.Object({
-        title: t.String(),
-        status: t.String(), // ex: "TODO", "DOING", "DONE"
-      }),
-    }
-  )
-  .patch(
-    "/metas/:id",
-    async ({ params, body }) => {
-      const { id } = params;
-      const { title, status } = body;
-      return await prisma.goalBoard.update({
-        where: { id },
-        data: { title, status },
-      });
+  })
+  .patch("/metas/:id", async ({ params, body }) => {
+    const { id } = params;
+    const { title, status } = body;
+    return await prisma.goalBoard.update({ where: { id }, data: { title, status } });
+  }, {
+    body: t.Object({
+      title: t.Optional(t.String()),
+      status: t.Optional(t.String()),
+    }),
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Atualizar meta",
+      description: "Move uma meta entre colunas ou atualiza seu título.",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: {
+        "200": { description: "Meta atualizada", content: { "application/json": { schema: { $ref: "#/components/schemas/GoalBoard" } } } },
+      },
     },
-    {
-      body: t.Object({
-        title: t.Optional(t.String()),
-        status: t.Optional(t.String()),
-      }),
-    }
-  )
+  })
   .delete("/metas/:id", async ({ params }) => {
     const { id } = params;
-    return await prisma.goalBoard.delete({
-      where: { id },
-    });
+    return await prisma.goalBoard.delete({ where: { id } });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Deletar meta",
+      security: [{ BearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: { "200": { description: "Meta deletada" } },
+    },
   });

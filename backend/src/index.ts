@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { swaggerConfig } from "./docs/swagger";
 import { authRoutes } from "./routes/auth.routes";
 import { pessoalRoutes } from "./routes/pessoal.routes";
 import { menteRoutes } from "./routes/mente.routes";
@@ -16,15 +16,8 @@ const app = new Elysia()
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   }))
-  // Gerador de doc do Swagger (acessível em /swagger)
-  .use(swagger({
-    documentation: {
-      info: {
-        title: "Ambitious System API",
-        version: "1.0.0",
-      }
-    }
-  }))
+  // Documentação Swagger (acessível em /swagger)
+  .use(swaggerConfig)
   // Conectar rotas de autenticação (JWT setup acontece dentro deste módulo)
   .use(authRoutes)
   // Conectar rotas do Pilar Pessoal
