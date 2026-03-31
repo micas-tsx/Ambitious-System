@@ -47,7 +47,7 @@ export default function BibliotecaDashboard() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      await menteService.updateLivroStatus(id, status);
+      await menteService.updateLivro(id, { status });
       await fetchData();
     } catch (error) {
       console.error("Erro ao atualizar status do livro:", error);

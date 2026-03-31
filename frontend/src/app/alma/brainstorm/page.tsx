@@ -36,7 +36,7 @@ export default function BrainstormDashboard() {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) return;
     try {
-      await almaService.createBrainstorm(newTitle, newContent, newCategory);
+      await almaService.createBrainstorm({ title: newTitle, content: newContent, category: newCategory });
       setNewTitle("");
       setNewContent("");
       setNewCategory("");

@@ -30,7 +30,7 @@ export default function HobbiesDashboard() {
   const handleCreateHobby = async () => {
     if (!newHobbyName.trim()) return;
     try {
-      await almaService.createHobby(newHobbyName, newHobbyCategory);
+      await almaService.createHobby({ name: newHobbyName, category: newHobbyCategory });
       setNewHobbyName("");
       await fetchData();
     } catch (error) {

@@ -25,7 +25,7 @@ export default function DietaDashboard() {
       ]);
       setRefeicoes(Array.isArray(mealsData) ? mealsData : []);
       setAlimentos(Array.isArray(foodsData) ? foodsData : []);
-      setWaterConsumed(waterData?.consumed || 0);
+      setWaterConsumed((waterData as any)?.consumed || 0);
     } catch (error) {
       console.error("Erro ao carregar dados da dieta:", error);
     } finally {
