@@ -66,5 +66,52 @@ Foco no relaxamento consciente, descompressão, desestresse e engajamento criati
 
 ---
 
+## Imagens
+
+### Autenticação
+
+| Página | Descrição |
+|--------|-----------|
+| ![Login](screenshots/01-login.png) | Página de Login |
+| ![Registro](screenshots/02-register.png) | Página de Registro |
+
+### Dashboard
+
+| Página | Descrição |
+|--------|-----------|
+| ![Home](screenshots/03-home.png) | Dashboard principal com os 4 pilares |
+
+### Pilar Pessoal
+
+| Página | Descrição |
+|--------|-----------|
+| ![Finanças](screenshots/04-pessoal-financas.png) | Gestión de contas e transações |
+| ![Diário](screenshots/05-pessoal-diario.png) | Anotações e tarefas diárias |
+| ![Quadro](screenshots/06-pessoal-quadro.png) | Quadro Kanban de metas |
+
+### Pilar Mente
+
+| Página | Descrição |
+|--------|-----------|
+| ![Estudos](screenshots/07-mente-estudos.png) | Cadernos e aulas de estudo |
+| ![Biblioteca](screenshots/08-mente-biblioteca.png) | Biblioteca de livros |
+
+### Pilar Corpo
+
+| Página | Descrição |
+|--------|-----------|
+| ![Performance](screenshots/09-corpo-performance.png) | Avaliações físicas e TDEE |
+| ![Treinos](screenshots/10-corpo-treinos.png) | Rotinas de treino |
+| ![Dieta](screenshots/11-corpo-dieta.png) | Planejamento de refeições |
+
+### Pilar Alma
+
+| Página | Descrição |
+|--------|-----------|
+| ![Hobbies](screenshots/12-alma-hobbies.png) | Gestão de hobbies |
+| ![Brainstorm](screenshots/13-alma-brainstorm.png) | Quadro de ideias |
+
+---
+
 > ⚠️ **Documentação Técnica Adicional:**
 > Para informações a respeito dos princípios técnicos, regras de testes, otimização de performance, padrões focados em 'Mobile-First' e UX para futuras atualizações da base de código do The Ambitious System, por favor visite nosso guia interno: [`docs/guide.md`](./docs/guide.md).
