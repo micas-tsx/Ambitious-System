@@ -26,12 +26,15 @@ export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalP
     e.preventDefault();
     if (!form.accountId || !form.name || !form.limit) return;
 
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pessoal/cartoes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           accountId: form.accountId,
           name: form.name,

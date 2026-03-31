@@ -7,6 +7,7 @@ import { PlusCircle, Wallet2, CreditCard, ArrowUpRight, ArrowDownRight, Loader2 
 import { pessoalService } from "@/services/pessoal.service";
 import { TransacaoModal } from "@/components/ui/transacao-modal";
 import { CartaoModal } from "@/components/ui/cartao-modal";
+import { ContaModal } from "@/components/ui/conta-modal";
 
 export default function FinancasDashboard() {
   const [contas, setContas] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function FinancasDashboard() {
   const [loading, setLoading] = useState(true);
   const [modalType, setModalType] = useState<"INCOME" | "EXPENSE" | null>(null);
   const [showCartaoModal, setShowCartaoModal] = useState(false);
+  const [showContaModal, setShowContaModal] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -87,10 +89,17 @@ export default function FinancasDashboard() {
             </CardContent>
           </Card>
         )) : (
-          <Card className="bg-zinc-900 border-zinc-800 border-dashed">
-            <CardHeader>
-              <CardTitle className="text-zinc-500 text-sm">Nenhuma conta cadastrada</CardTitle>
-            </CardHeader>
+          <Card className="bg-zinc-900 border-zinc-800 border-dashed flex flex-col items-center justify-center p-6">
+            <Wallet2 className="h-8 w-8 text-zinc-700 mb-2" />
+            <CardTitle className="text-zinc-500 text-sm mb-3">Nenhuma conta cadastrada</CardTitle>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+              onClick={() => setShowContaModal(true)}
+            >
+              <PlusCircle className="w-4 h-4 mr-2" /> Cadastrar Conta
+            </Button>
           </Card>
         )}
 
@@ -227,6 +236,13 @@ export default function FinancasDashboard() {
         onClose={() => setShowCartaoModal(false)}
         onSuccess={fetchData}
         contas={contas}
+      />
+
+      {/* Modal de Conta Bancária */}
+      <ContaModal
+        isOpen={showContaModal}
+        onClose={() => setShowContaModal(false)}
+        onSuccess={fetchData}
       />
 
     </div>

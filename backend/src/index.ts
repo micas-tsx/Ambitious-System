@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { swaggerConfig } from "./docs/swagger";
@@ -12,9 +13,10 @@ import { prisma } from "./db/prisma";
 const app = new Elysia()
   // Configuração global de CORS
   .use(cors({
-    origin: "*", 
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   }))
   // Documentação Swagger (acessível em /swagger)
   .use(swaggerConfig)

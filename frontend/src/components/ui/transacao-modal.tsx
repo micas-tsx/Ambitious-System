@@ -36,12 +36,15 @@ export function TransacaoModal({ isOpen, onClose, onSuccess, type, contas }: Tra
     e.preventDefault();
     if (!form.accountId || !form.amount) return;
 
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pessoal/transacoes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           accountId: form.accountId,
           amount: parseFloat(form.amount),

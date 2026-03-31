@@ -3,6 +3,8 @@ import { apiFetch } from "@/lib/api";
 export const pessoalService = {
   // Finanças
   getContas: () => apiFetch("/pessoal/contas"),
+  createConta: (data: { name: string; balance?: number }) => 
+    apiFetch("/pessoal/contas", { method: "POST", body: JSON.stringify(data) }),
   getTransacoes: () => apiFetch("/pessoal/transacoes"),
   getCartoes: () => apiFetch("/pessoal/cartoes"),
   createTransacao: (data: any) => apiFetch("/pessoal/transacoes", { method: "POST", body: JSON.stringify(data) }),
