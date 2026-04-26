@@ -1,11 +1,16 @@
+"use client";
+
 import Link from "next/link";
-import { Wallet, Book, LayoutDashboard, ArrowLeft } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Wallet, BookOpen, LayoutGrid, ArrowLeft, User } from "lucide-react";
 
 export default function PessoalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
   const routes = [
     {
       name: "Finanças",
@@ -15,12 +20,12 @@ export default function PessoalLayout({
     {
       name: "Diário",
       href: "/pessoal/diario",
-      icon: Book,
+      icon: BookOpen,
     },
     {
-      name: "Quadro de Metas",
+      name: "Quadro de Tasks",
       href: "/pessoal/quadro",
-      icon: LayoutDashboard,
+      icon: LayoutGrid,
     },
   ];
 
@@ -34,23 +39,31 @@ export default function PessoalLayout({
         </Link>
         
         <div className="mb-8">
-          <h2 className="text-xl font-bold tracking-tight text-blue-500">
+          <h2 className="text-xl font-bold tracking-tight text-blue-500 flex items-center gap-2">
+            <User className="w-5 h-5" />
             Pessoal
           </h2>
           <p className="text-xs text-zinc-500 mt-1">Organize sua vida cotidiana</p>
         </div>
 
         <nav className="flex-1 space-y-2">
-          {routes.map((route) => (
-            <Link
-              key={route.href}
-              href={route.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all font-medium"
-            >
-              <route.icon className="w-5 h-5" />
-              {route.name}
-            </Link>
-          ))}
+          {routes.map((route) => {
+            const isActive = pathname === route.href;
+            return (
+              <Link
+                key={route.href}
+                href={route.href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all font-medium ${
+                  isActive 
+                    ? "bg-blue-600/20 text-blue-400 border border-blue-600/30" 
+                    : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+              >
+                <route.icon className="w-5 h-5" />
+                {route.name}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 

@@ -54,6 +54,11 @@ const app = new Elysia()
       };
     }
   })
+  .onError(({ error, set }) => {
+    console.error("API Error:", error.message);
+    set.status = 500;
+    return { message: error.message };
+  })
   .listen(3001);
 
 console.log(`🦊 Ambitious System API is running at ${app.server?.hostname}:${app.server?.port}`);

@@ -18,6 +18,7 @@ model User {
   accounts BankAccount[]
   journals JournalEntry[]
   goals    GoalBoard[]
+  tasks    Task[]
 
   // Relacionamentos Pilar 2: Mente
   notebooks StudyNotebook[]
@@ -49,14 +50,16 @@ model BankAccount {
 }
 
 model Transaction {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   accountId   String
+  cardId      String?
   amount      Float
   type        String // INCOME, EXPENSE
   category    String // Moradia, Assinatura, Comida, etc...
   description String?
-  date        DateTime    @default(now())
-  account     BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date        DateTime     @default(now())
+  account     BankAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  card        CreditCard?  @relation(fields: [cardId], references: [id], onDelete: SetNull)
 }
 
 model CreditCard {
@@ -67,6 +70,7 @@ model CreditCard {
   currentUsed Float       @default(0.0)
   invoiceDate Int // Dia do vencimento
   account     BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 }
 
 model JournalEntry {
@@ -80,12 +84,15 @@ model JournalEntry {
 
 model Task {
   id          String        @id @default(uuid())
+  userId      String
   journalId   String?
   title       String
   category    String // Saúde, Estudos, Pessoal, etc.
   rating      Int           @default(0) // 0 a 5 estrelas
   isCompleted Boolean       @default(false)
   date        DateTime      @default(now())
+  status      String        @default("TODO") // TODO, DOING, DONE (Kanban)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   journal     JournalEntry? @relation(fields: [journalId], references: [id], onDelete: SetNull)
 }
 

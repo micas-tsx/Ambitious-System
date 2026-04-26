@@ -16,13 +16,13 @@ export const isAuthenticated = (app: Elysia) =>
       const auth = headers.authorization;
       if (!auth || !auth.startsWith("Bearer ")) {
         set.status = 401;
-        throw new Error("Não autorizado");
+        throw { message: "Não autorizado", status: 401 };
       }
       const token = auth.slice(7);
       const payload = await jwt.verify(token);
       if (!payload) {
         set.status = 401;
-        throw new Error("Token inválido");
+        throw { message: "Token inválido", status: 401 };
       }
       return {
         userId: payload.sub as string,

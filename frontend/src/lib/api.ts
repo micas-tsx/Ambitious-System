@@ -23,11 +23,19 @@ export async function apiFetch<T>(
       localStorage.removeItem("user");
       window.location.href = "/auth/login";
     }
+    throw new Error("Não autorizado");
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Erro na requisição à API");
+    let errorMessage = "Erro na requisição à API";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch {
+      // Response não é JSON, usar texto ou status
+      errorMessage = response.statusText || `Erro ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

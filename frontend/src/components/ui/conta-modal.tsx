@@ -4,25 +4,31 @@ import { useState } from "react";
 import { Modal } from "./modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCw } from "lucide-react";
 
 interface ContaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onCreateAnother?: () => void;
 }
 
-export function ContaModal({ isOpen, onClose, onSuccess }: ContaModalProps) {
+export function ContaModal({ isOpen, onClose, onSuccess, onCreateAnother }: ContaModalProps) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    balance: "",
-  });
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name) return;
+    const formData = new FormData(e.target as HTMLFormElement);
+    const name = formData.get("name") as string;
+    const balance = formData.get("balance") as string;
 
+    if (!name) {
+      setError("Informe o nome da conta");
+      return;
+    }
+
+    setError("");
     const token = localStorage.getItem("token");
     setLoading(true);
     try {
@@ -33,18 +39,25 @@ export function ContaModal({ isOpen, onClose, onSuccess }: ContaModalProps) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          name: form.name,
-          balance: form.balance ? parseFloat(form.balance) : 0,
+          name,
+          balance: balance ? parseFloat(balance) : 0,
         }),
       });
 
       if (response.ok) {
-        setForm({ name: "", balance: "" });
         onSuccess();
-        onClose();
+        if (onCreateAnother) {
+          onCreateAnother();
+          (e.target as HTMLFormElement).reset();
+        } else {
+          onClose();
+        }
+      } else {
+        const data = await response.json();
+        setError(data.message || "Erro ao criar conta");
       }
-    } catch (error) {
-      console.error("Erro ao criar conta:", error);
+    } catch (err) {
+      setError("Erro ao criar conta");
     } finally {
       setLoading(false);
     }
@@ -59,36 +72,42 @@ export function ContaModal({ isOpen, onClose, onSuccess }: ContaModalProps) {
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button 
-            onClick={handleSubmit} 
-            disabled={loading || !form.name}
+            type="submit"
+            form="conta-form"
+            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Criar Conta
+            Criar
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="conta-form" onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Nome da Conta</label>
           <Input
+            name="name"
             placeholder="Ex: Conta Corrente, Poupança"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="bg-zinc-950 border-zinc-800 text-white"
+            autoFocus
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Saldo Inicial (R$)</label>
           <Input
+            name="balance"
             type="number"
             step="0.01"
             min="0"
             placeholder="0,00"
-            value={form.balance}
-            onChange={(e) => setForm({ ...form, balance: e.target.value })}
             className="bg-zinc-950 border-zinc-800 text-white"
           />
           <p className="text-xs text-zinc-500">Deixe em branco ou 0 para começar com saldo zero.</p>

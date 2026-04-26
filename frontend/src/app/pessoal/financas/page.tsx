@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Wallet2, CreditCard, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
+import { PlusCircle, Wallet2, CreditCard, ArrowUpRight, ArrowDownRight, Loader2, Trash2 } from "lucide-react";
 import { pessoalService } from "@/services/pessoal.service";
 import { TransacaoModal } from "@/components/ui/transacao-modal";
 import { CartaoModal } from "@/components/ui/cartao-modal";
 import { ContaModal } from "@/components/ui/conta-modal";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 
 export default function FinancasDashboard() {
   const [contas, setContas] = useState<any[]>([]);
@@ -17,6 +18,9 @@ export default function FinancasDashboard() {
   const [modalType, setModalType] = useState<"INCOME" | "EXPENSE" | null>(null);
   const [showCartaoModal, setShowCartaoModal] = useState(false);
   const [showContaModal, setShowContaModal] = useState(false);
+  const [showDeleteConta, setShowDeleteConta] = useState(false);
+  const [showDeleteCartao, setShowDeleteCartao] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
 
   const fetchData = async () => {
     try {
@@ -38,6 +42,25 @@ export default function FinancasDashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleDeleteTransacao = async (tx: any) => {
+    try {
+      await pessoalService.deleteTransacao(tx.id);
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao deletar transação:", error);
+    }
+  };
+
+  const openDeleteConta = (conta: any) => {
+    setItemToDelete(conta);
+    setShowDeleteConta(true);
+  };
+
+  const openDeleteCartao = (cartao: any) => {
+    setItemToDelete(cartao);
+    setShowDeleteCartao(true);
+  };
 
   if (loading) {
     return (
@@ -70,14 +93,34 @@ export default function FinancasDashboard() {
       </div>
 
       {/* Visão de Contas Bancárias */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-white">Contas</h2>
+        <Button 
+          size="sm" 
+          variant="ghost"
+          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+          onClick={() => setShowContaModal(true)}
+        >
+          <PlusCircle className="w-4 h-4 mr-1" /> Adicionar
+        </Button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {contas.length > 0 ? contas.map((conta) => (
-          <Card key={conta.id} className="bg-zinc-900 border-zinc-800 shadow-md">
+          <Card key={conta.id} className="bg-zinc-900 border-zinc-800 shadow-md group relative">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400">
-                {conta.name}
-              </CardTitle>
-              <Wallet2 className="h-4 w-4 text-blue-500" />
+              <div className="flex items-center gap-2">
+                <Wallet2 className="h-4 w-4 text-blue-500" />
+                <CardTitle className="text-sm font-medium text-zinc-400">
+                  {conta.name}
+                </CardTitle>
+              </div>
+              <button
+                onClick={() => openDeleteConta(conta)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-500 rounded transition-all"
+                title="Excluir"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
@@ -102,16 +145,38 @@ export default function FinancasDashboard() {
             </Button>
           </Card>
         )}
+        </div>
 
         {/* Visão de Cartões */}
+        <div className="flex items-center justify-between mt-8 mb-4">
+          <h2 className="text-lg font-semibold text-white">Cartões</h2>
+          <Button 
+            size="sm" 
+            variant="ghost"
+            className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+            onClick={() => setShowCartaoModal(true)}
+          >
+            <PlusCircle className="w-4 h-4 mr-1" /> Adicionar
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cartoes.length > 0 ? cartoes.map((cartao) => (
-          <Card key={cartao.id} className="bg-zinc-900 border-zinc-800 shadow-md relative overflow-hidden">
+          <Card key={cartao.id} className="bg-zinc-900 border-zinc-800 shadow-md relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-zinc-400">
-                {cartao.name}
-              </CardTitle>
-              <CreditCard className="h-4 w-4 text-indigo-400" />
+              <div className="flex items-center gap-2 relative z-10">
+                <CreditCard className="h-4 w-4 text-indigo-400" />
+                <CardTitle className="text-sm font-medium text-zinc-400">
+                  {cartao.name}
+                </CardTitle>
+              </div>
+              <button
+                onClick={() => openDeleteCartao(cartao)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-500 rounded transition-all"
+                title="Excluir"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-white">Fatura: {cartao.currentUsed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
@@ -140,9 +205,9 @@ export default function FinancasDashboard() {
             </Button>
           </Card>
         )}
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         {/* Ultimas Transações */}
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
@@ -152,7 +217,7 @@ export default function FinancasDashboard() {
           <CardContent>
             <div className="space-y-4">
               {transacoes.length > 0 ? transacoes.slice(0, 5).map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-800">
+                <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-800 group">
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-full ${tx.type === "INCOME" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
                     {tx.type === "INCOME" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -165,9 +230,18 @@ export default function FinancasDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className={`font-semibold ${tx.type === "INCOME" ? "text-emerald-500" : "text-white"}`}>
-                  {tx.type === "INCOME" ? "+" : "-"}
-                  {tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                <div className="flex items-center gap-3">
+                  <div className={`font-semibold ${tx.type === "INCOME" ? "text-emerald-500" : "text-white"}`}>
+                    {tx.type === "INCOME" ? "+" : "-"}
+                    {tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteTransacao(tx)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-500 hover:text-red-500 rounded transition-all"
+                    title="Excluir"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
               )) : (
@@ -228,6 +302,7 @@ export default function FinancasDashboard() {
         onSuccess={fetchData}
         type={modalType || "EXPENSE"}
         contas={contas}
+        cartoes={cartoes}
       />
 
       {/* Modal de Cartão de Crédito */}
@@ -243,6 +318,30 @@ export default function FinancasDashboard() {
         isOpen={showContaModal}
         onClose={() => setShowContaModal(false)}
         onSuccess={fetchData}
+      />
+
+      {/* Modal de Confirmação de Exclusão de Conta */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteConta}
+        onClose={() => { setShowDeleteConta(false); setItemToDelete(null); }}
+        onConfirm={async () => {
+          if (itemToDelete) await pessoalService.deleteConta(itemToDelete.id);
+        }}
+        title="Excluir Conta"
+        itemName={itemToDelete?.name || ""}
+        itemType="conta"
+      />
+
+      {/* Modal de Confirmação de Exclusão de Cartão */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteCartao}
+        onClose={() => { setShowDeleteCartao(false); setItemToDelete(null); }}
+        onConfirm={async () => {
+          if (itemToDelete) await pessoalService.deleteCartao(itemToDelete.id);
+        }}
+        title="Excluir Cartão"
+        itemName={itemToDelete?.name || ""}
+        itemType="cartão"
       />
 
     </div>

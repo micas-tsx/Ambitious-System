@@ -15,17 +15,22 @@ interface CartaoModalProps {
 
 export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalProps) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    accountId: "",
-    name: "",
-    limit: "",
-    invoiceDate: "10",
-  });
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.accountId || !form.name || !form.limit) return;
+    const formData = new FormData(e.target as HTMLFormElement);
+    const accountId = formData.get("accountId") as string;
+    const name = formData.get("name") as string;
+    const limit = formData.get("limit") as string;
+    const invoiceDate = formData.get("invoiceDate") as string;
 
+    if (!accountId || !name || !limit) {
+      setError("Preencha todos os campos");
+      return;
+    }
+
+    setError("");
     const token = localStorage.getItem("token");
     setLoading(true);
     try {
@@ -36,20 +41,22 @@ export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalP
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          accountId: form.accountId,
-          name: form.name,
-          limit: parseFloat(form.limit),
-          invoiceDate: parseInt(form.invoiceDate),
+          accountId,
+          name,
+          limit: parseFloat(limit),
+          invoiceDate: parseInt(invoiceDate),
         }),
       });
 
       if (response.ok) {
-        setForm({ accountId: "", name: "", limit: "", invoiceDate: "10" });
         onSuccess();
         onClose();
+      } else {
+        const data = await response.json();
+        setError(data.message || "Erro ao criar cartão");
       }
-    } catch (error) {
-      console.error("Erro ao criar cartão:", error);
+    } catch (err) {
+      setError("Erro ao criar cartão");
     } finally {
       setLoading(false);
     }
@@ -64,23 +71,30 @@ export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalP
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button 
-            onClick={handleSubmit} 
-            disabled={loading || !form.accountId || !form.name || !form.limit}
+            type="submit"
+            form="cartao-form"
+            disabled={loading}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Criar Cartão
+            Criar
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="cartao-form" onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Conta Vinculada</label>
           <select 
+            name="accountId"
             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-            value={form.accountId}
-            onChange={(e) => setForm({ ...form, accountId: e.target.value })}
+            required
           >
             <option value="">Selecione uma conta...</option>
             {contas.map(conta => (
@@ -92,22 +106,21 @@ export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalP
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Nome do Cartão</label>
           <Input
+            name="name"
             placeholder="Ex: Nubank, Itaú Gold"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="bg-zinc-950 border-zinc-800 text-white"
+            autoFocus
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Limite Total (R$)</label>
           <Input
+            name="limit"
             type="number"
             step="0.01"
             min="0"
             placeholder="5.000,00"
-            value={form.limit}
-            onChange={(e) => setForm({ ...form, limit: e.target.value })}
             className="bg-zinc-950 border-zinc-800 text-white"
           />
         </div>
@@ -115,9 +128,8 @@ export function CartaoModal({ isOpen, onClose, onSuccess, contas }: CartaoModalP
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Dia do Vencimento</label>
           <select 
+            name="invoiceDate"
             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-            value={form.invoiceDate}
-            onChange={(e) => setForm({ ...form, invoiceDate: e.target.value })}
           >
             {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
               <option key={day} value={day}>{day}</option>

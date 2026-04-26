@@ -7,8 +7,20 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
   
   // === FINANÇAS: CONTAS ===
   .get("/contas", async ({ userId }) => {
-    return await prisma.bankAccount.findMany({
+    const accounts = await prisma.bankAccount.findMany({
       where: { userId },
+      include: {
+        transactions: {
+          where: { cardId: null },
+        },
+      },
+    });
+    
+    return accounts.map(account => {
+      const balance = account.transactions.reduce((sum, tx) => {
+        return tx.type === "INCOME" ? sum + tx.amount : sum - tx.amount;
+      }, 0);
+      return { ...account, balance };
     });
   }, {
     detail: {
@@ -126,13 +138,14 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
     },
   })
   .post("/transacoes", async ({ body }) => {
-    const { accountId, amount, type, category, description } = body;
+    const { accountId, cardId, amount, type, category, description } = body;
     return await prisma.transaction.create({
-      data: { accountId, amount, type, category, description },
+      data: { accountId, cardId, amount, type, category, description },
     });
   }, {
     body: t.Object({
       accountId: t.String(),
+      cardId: t.Optional(t.String()),
       amount: t.Number(),
       type: t.String(),
       category: t.String(),
@@ -141,7 +154,7 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
     detail: {
       tags: ["Pessoal"],
       summary: "Criar transação",
-      description: "Cria uma nova transação (receita ou despesa).",
+      description: "Cria uma nova transação (receita ou despesa). Se cardId for fornecido, atualiza a fatura do cartão.",
       security: [{ BearerAuth: [] }],
       requestBody: {
         required: true,
@@ -152,12 +165,13 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
               required: ["accountId", "amount", "type", "category"],
               properties: {
                 accountId: { type: "string", format: "uuid" },
+                cardId: { type: "string", format: "uuid" },
                 amount: { type: "number" },
                 type: { type: "string", enum: ["INCOME", "EXPENSE"] },
                 category: { type: "string" },
                 description: { type: "string" },
               },
-              example: { accountId: "uuid", amount: 150.50, type: "EXPENSE", category: "Alimentação", description: "Supermercado" },
+              example: { accountId: "uuid", cardId: "uuid (opcional)", amount: 150.50, type: "EXPENSE", category: "Alimentação", description: "Supermercado" },
             },
           },
         },
@@ -183,8 +197,18 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
 
   // === FINANÇAS: CARTÕES ===
   .get("/cartoes", async ({ userId }) => {
-    return await prisma.creditCard.findMany({
+    const cards = await prisma.creditCard.findMany({
       where: { account: { userId } },
+      include: {
+        transactions: true,
+      },
+    });
+    
+    return cards.map(card => {
+      const currentUsed = card.transactions
+        .filter(tx => tx.type === "EXPENSE")
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      return { ...card, currentUsed };
     });
   }, {
     detail: {
@@ -329,23 +353,24 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
       responses: { "200": { description: "Entrada deletada" } },
     },
   })
-  .post("/tasks", async ({ body }) => {
-    const { journalId, title, category, rating, isCompleted } = body;
+  .post("/tasks", async ({ userId, body }) => {
+    const { journalId, title, category, rating, isCompleted, status } = body;
     return await prisma.task.create({
-      data: { journalId, title, category, rating, isCompleted },
+      data: { userId, journalId, title, category, rating, isCompleted, status },
     });
   }, {
     body: t.Object({
       journalId: t.Optional(t.String()),
       title: t.String(),
       category: t.String(),
-      rating: t.Number(),
+      rating: t.Optional(t.Number()),
       isCompleted: t.Optional(t.Boolean()),
+      status: t.Optional(t.String()),
     }),
     detail: {
       tags: ["Pessoal"],
       summary: "Criar tarefa",
-      description: "Cria uma nova tarefa no diário.",
+      description: "Cria uma nova tarefa no diário ou quadro Kanban.",
       security: [{ BearerAuth: [] }],
       requestBody: {
         required: true,
@@ -360,8 +385,9 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
                 category: { type: "string" },
                 rating: { type: "number" },
                 isCompleted: { type: "boolean" },
+                status: { type: "string", enum: ["TODO", "DOING", "DONE"] },
               },
-              example: { title: "Estudar TypeScript", category: "Estudos", rating: 0, isCompleted: false },
+              example: { title: "Estudar TypeScript", category: "Estudos", rating: 0, isCompleted: false, status: "TODO" },
             },
           },
         },
@@ -371,20 +397,46 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
       },
     },
   })
-  .patch("/tasks/:id", async ({ params, body }) => {
+  .get("/tasks", async ({ userId }) => {
+    return await prisma.task.findMany({
+      where: { userId },
+      orderBy: { date: "desc" }
+    });
+  }, {
+    detail: {
+      tags: ["Pessoal"],
+      summary: "Listar tarefas",
+      description: "Retorna todas as tarefas para o quadro Kanban.",
+      security: [{ BearerAuth: [] }],
+      responses: {
+        "200": { description: "Lista de tarefas", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Task" } } } } },
+      },
+    },
+  })
+  .patch("/tasks/:id", async ({ params, body, userId }) => {
     const { id } = params;
-    return await prisma.task.update({ where: { id }, data: body });
+    const updateData: { title?: string; category?: string; rating?: number; isCompleted?: boolean; status?: string } = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.category !== undefined) updateData.category = body.category;
+    if (body.rating !== undefined) updateData.rating = body.rating;
+    if (body.isCompleted !== undefined) updateData.isCompleted = body.isCompleted;
+    if (body.status !== undefined) updateData.status = body.status;
+    return await prisma.task.update({ 
+      where: { id, userId }, 
+      data: updateData 
+    });
   }, {
     body: t.Object({
       title: t.Optional(t.String()),
       category: t.Optional(t.String()),
       rating: t.Optional(t.Number()),
       isCompleted: t.Optional(t.Boolean()),
+      status: t.Optional(t.String()),
     }),
     detail: {
       tags: ["Pessoal"],
       summary: "Atualizar tarefa",
-      description: "Atualiza uma tarefa existente. Use para marcar como concluída ou alterar propriedades.",
+      description: "Atualiza uma tarefa existente. Use para mover entre colunas do Kanban.",
       security: [{ BearerAuth: [] }],
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
       responses: {
@@ -392,9 +444,9 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
       },
     },
   })
-  .delete("/tasks/:id", async ({ params }) => {
+  .delete("/tasks/:id", async ({ params, userId }) => {
     const { id } = params;
-    return await prisma.task.delete({ where: { id } });
+    return await prisma.task.delete({ where: { id, userId } });
   }, {
     detail: {
       tags: ["Pessoal"],
@@ -455,8 +507,10 @@ export const pessoalRoutes = new Elysia({ prefix: "/pessoal" })
   })
   .patch("/metas/:id", async ({ params, body }) => {
     const { id } = params;
-    const { title, status } = body;
-    return await prisma.goalBoard.update({ where: { id }, data: { title, status } });
+    const updateData: { title?: string; status?: string } = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.status !== undefined) updateData.status = body.status;
+    return await prisma.goalBoard.update({ where: { id }, data: updateData });
   }, {
     body: t.Object({
       title: t.Optional(t.String()),

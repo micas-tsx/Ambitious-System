@@ -16,6 +16,9 @@ Foco em organização financeira e planejamento da vida e tempo cotidiano.
   - **Separação Estrita:** O sistema de carteiras/contas é isolado. Gastos de uma conta (Ex: Banco 1) não interferem no saldo ou gastos de outra (Ex: Banco 2).
   - **Categorização:** Transações podem e devem ser separadas em: *Moradia, Assinatura, Gasto Pessoal, Comida, Saúde, Trabalho, Educação, Utilidades, Fitness e Viagem.*
   - **Sistema de Cartão:** Controle de limite total, limite de uso atual e visualização da fatura. *(Nota: Este módulo é 100% gerenciado pelo cliente, dependendo de inserção manual, sem integrações com Open Banking).*
+  - **Histórico de Transações:** Visualização detalhada de todas as transações vinculadas a conta ou cartão
+  - **Cálculo Automático de Saldo:** Saldo calculado em tempo real baseado no histórico de transações
+  - **Modal de Confirmação de Exclusão:** Interface dedicada para exclusão segura de transações
 
 - **Diário (Anotações e Tasks):**
   - Espaço de notas tipo "journal" para refletir e escrever sobre o dia.
@@ -24,6 +27,12 @@ Foco em organização financeira e planejamento da vida e tempo cotidiano.
 
 - **Quadro (Board):**
   - Gerenciamento visual de metas, objetivos e tarefas pendentes no estilo Kanban, proporcionando um tracking nítido de conclusão.
+  - Sistema de colunas dinâmico (A Fazer → Em Progresso → Concluído)
+  - Categorização de tarefas com cores distintivas: *Pessoal, Trabalho, Estudos, Saúde, Família, Hobbies, Moradia*
+  - Sistema de rating (avaliação em estrelas) para cada tarefa
+  - Drag-and-drop fluid com @dnd-kit para movimentação entre colunas
+  - Modo de edição inline para títulos e categorias
+  - Confirmação de exclusão com modal dedicado
 
 ### 2. Mente
 Foco em desenvolvimento intelectual, aprendizagem contínua e foco literário.
